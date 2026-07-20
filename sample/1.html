@@ -1,1 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[정밀 보정] 픽셀-거리 가변형 다중 표적 시뮬레이터</title>
+    <!-- Tailwind CSS 및 FontAwesome 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+        }
+        /* Custom scrollbar for telemetry logs */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        /* Custom styling for embedded cards to maintain UI stability */
+        .telemetry-card {
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+        }
+        .badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fff;
+            margin-left: 4px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
 
+    <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 text-slate-950 rounded-xl flex items-center justify-center font-extrabold text-xl shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-satellite-dish text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">B.S.P.S R&D</h1>
+                    <p class="text-xs text-slate-400">실시간 타이트 바운딩 박스 캘리브레이터 v2.9</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-semibold rounded-full border border-blue-500/20">
+                수치 기준선 가동 업데이트본
+            </span>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- 왼쪽 콘텐츠: 가변 뷰파인더 스크린 (7열) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center">
+                <div class="flex items-center justify-between w-full mb-4">
+                    <h2 class="text-md font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-camera text-blue-500"></i>
+                        타이트 매핑 가이드 뷰파인더 (실시간 공간 매핑형)
+                    </h2>
+                    <span class="text-xs text-slate-400 font-mono" id="resolutionTag">1920 × 1080</span>
+                </div>
+                
+                <!-- 동적 캔버스 프레임 -->
+                <div class="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex justify-center items-center">
+                    <canvas id="viewfinderCanvas" class="w-full h-full object-contain"></canvas>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-center mt-4 w-full">
+                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] text-slate-500 mb-0.5 font-semibold">오브젝트 가이드</div>
+                        <div class="text-xs font-bold text-blue-400">타이트 피팅 완수</div>
+                    </div>
+                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] text-slate-500 mb-0.5 font-semibold">임계 충돌 알림</div>
+                        <div class="text-xs font-bold text-red-500" id="criticalDistanceText">226.0 m 진입시 적색</div>
+                    </div>
+                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+                        <div class="text-[10px] text-slate-500 mb-0.5 font-semibold">비례 상수 K</div>
+                        <div class="text-xs font-bold text-blue-400 font-mono" id="constKText">25,000</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 시뮬레이션 제어 설명 가이드 -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h3 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-cube text-blue-400"></i>
+                    GPS-픽셀 변환 범위 제어 및 항공 물리 연계
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    본 장비는 드론(DRONE_B)의 타깃 직선 위치를 <b>500m 기점</b>으로 보정하여 역산 처리를 수행합니다. 
+                    더불어 실시간 위험 예측 가동선인 임계 충돌 경보 거리를 항공 순항 안전 가이드라인에 맞춘 <b>226m</b>로 엄격하게 수정하여, 탐지 타깃이 경계선 내부로 침투할 시 바운딩 박스를 빨간색 경보로 즉시 변환합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- 오른쪽 콘텐츠: 실시간 통제 패널 및 텔레메트리 대시보드 (5열) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- 파라미터 조작 및 제어 패널 -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-md font-bold text-slate-100 flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-sliders text-blue-500"></i>
+                    마이크로 파라미터 제어 판넬
+                </h2>
+                
+                <div class="space-y-4 overflow-y-auto max-h-[500px] pr-1">
+                    <!-- 엔진 동작 제어 및 십자선 이동 오프셋 -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2">
+                            <span class="text-xs text-slate-400 font-semibold block mb-1.5">① 엔진 동작 제어</span>
+                            <button id="playPauseBtn" onclick="toggleSimulation()" class="w-full bg-amber-600 hover:bg-amber-700 transition text-white text-xs font-semibold py-2 rounded-lg flex items-center justify-center gap-2">
+                                <i id="playPauseIcon" class="fa-solid fa-pause"></i>
+                                <span id="playPauseText">시뮬레이션 일시 중지</span>
+                            </button>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">② 십자선 X 오프셋 (좌/우)</label>
+                            <input type="number" id="crosshairXInput" value="0" step="5" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">③ 십자선 Y 오프셋 (상/하)</label>
+                            <input type="number" id="crosshairYInput" value="0" step="5" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- 헬리캠 A GPS 입력부 -->
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold block mb-2">④ HELI_CAMERA_A GPS 범위 설정</span>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 위도 (Min Lat)</label>
+                                <input type="number" id="camLatMin" value="37.566000" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 위도 (Max Lat)</label>
+                                <input type="number" id="camLatMax" value="37.567000" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div class="col-span-2 border-b border-slate-800/50 my-1"></div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 경도 (Min Lon)</label>
+                                <input type="number" id="camLonMin" value="126.799500" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 경도 (Max Lon)</label>
+                                <input type="number" id="camLonMax" value="126.800500" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div class="col-span-2 border-b border-slate-800/50 my-1"></div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 고도 (Min Alt m)</label>
+                                <input type="number" id="camAltMin" value="340.0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 고도 (Max Alt m)</label>
+                                <input type="number" id="camAltMax" value="360.0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 드론 B GPS 입력부 -->
+                    <div>
+                        <span class="text-xs text-slate-400 font-semibold block mb-2">⑤ SURVEILLANCE_DRONE_B GPS 범위 설정 (500m 고정 기조)</span>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60">
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 위도 (Min Lat)</label>
+                                <input type="number" id="droneLatMin" value="37.570000" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 위도 (Max Lat)</label>
+                                <input type="number" id="droneLatMax" value="37.571500" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div class="col-span-2 border-b border-slate-800/50 my-1"></div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 경도 (Min Lon)</label>
+                                <input type="number" id="droneLonMin" value="126.799000" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 경도 (Max Lon)</label>
+                                <input type="number" id="droneLonMax" value="126.801500" step="0.0001" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div class="col-span-2 border-b border-slate-800/50 my-1"></div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최소 고도 (Min Alt m)</label>
+                                <input type="number" id="droneAltMin" value="330.0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 block mb-0.5">최대 고도 (Max Alt m)</label>
+                                <input type="number" id="droneAltMax" value="370.0" step="1" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 해상도, 영점 픽셀 및 위험 경보 한계치 커스텀 조정 -->
+                    <div class="grid grid-cols-2 gap-2 border-t border-slate-800 pt-3">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">⑥ 해상도 가로 규격</label>
+                            <input type="number" id="resWidthInput" value="1920" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">⑦ 해상도 세로 규격</label>
+                            <input type="number" id="resHeightInput" value="1080" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">⑧ 500m 기준 영점 픽셀 지정</label>
+                            <input type="number" id="droneRefPxInput" value="50" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1 font-semibold">⑨ 임계 위험 충돌 거리 (m)</label>
+                            <input type="number" id="criticalDistanceInput" value="226.0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-mono focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <button onclick="applyConfiguration()" class="w-full bg-blue-600 hover:bg-blue-700 transition text-white text-xs font-semibold py-2 rounded-lg">
+                                환경 사양 동기화 및 적용
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 실시간 위성 텔레메트리 대시보드 출력창 -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col">
+                <h2 class="text-md font-bold text-slate-100 flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-satellite text-blue-500"></i>
+                    실시간 RTK-GPS 텔레메트리 대시보드
+                </h2>
+                
+                <div class="space-y-3 overflow-y-auto max-h-[160px] pr-1" id="telemetryLogContainer">
+                    <!-- 자바스크립트에서 동적 생성되는 실시간 데이터 카드 영역 -->
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 3. 실시간 인터랙티브 시뮬레이션 및 데이터 동적 계산 엔진 가동 -->
+    <script>
+        const canvas = document.getElementById('viewfinderCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 기본 전역 상태 변수
+        let virtualWidth = 1920;
+        let virtualHeight = 1080;
+        let referencePx = 50;  // 영점 기준 드론 픽셀 크기
+        let targetCount = 3;
+        let criticalDistance = 226.0; // [요청사항 반영] 위험 판단 임계값 거리 (기본 226m)
+        
+        // [요청사항 반영] 드론 기준거리를 500m로 산정하여 비례 상수 K 계산 (K = Reference Px * Reference Distance)
+        let K_const = referencePx * 500; 
+        let isRunning = true; 
+
+        // 사용자 입력형 데이터 오브젝트 풀 구조화
+        const cameraGPS = { lat: 37.566500, lon: 126.800000, alt: 350.0 };
+        const droneB = { lat: 37.570500, lon: 126.800000, alt: 350.0, dist: 500.0 }; // 드론 GPS 디폴트 범위를 500m 근방으로 보정
+
+        // 십자선 실시간 중심 이동 오프셋 변수
+        let offsetX = 0;
+        let offsetY = 0;
+
+        const R_earth = 6371000.0;
+        let targets = [];
+        let timeTick = 0;
+
+        function metersToDLat(meters) { return (meters / R_earth) * (180 / Math.PI); }
+        function metersToDLon(meters, lat) { return (meters / (R_earth * Math.cos(lat * Math.PI / 180))) * (180 / Math.PI); }
+        
+        function calculateDistance(gps1, gps2) {
+            const dLat = (gps2.lat - gps1.lat) * Math.PI / 180;
+            const dLon = (gps2.lon - gps1.lon) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(gps1.lat * Math.PI / 180) * Math.cos(gps2.lat * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const horizontalDist = R_earth * c;
+            const altDist = gps2.alt - gps1.alt;
+            return Math.sqrt(horizontalDist * horizontalDist + altDist * altDist);
+        }
+
+        function generateTargets() {
+            targets = [];
+            for (let i = 0; i < targetCount; i++) {
+                targets.push({
+                    id: `WILD_BIRD_0${i + 1}`,
+                    seedX: (i * 1.5) + 0.5,
+                    seedY: (i * 2.3) + 1.2,
+                    seedZ: (i * 0.9) + 2.1,
+                    // 유동 타깃의 탐지 궤적이 신설 경고라인(226m) 내외를 안정적으로 횡단하도록 범위 조율
+                    baseX: (Math.random() - 0.5) * 120,
+                    baseY: 100 + Math.random() * 250, 
+                    baseZ: 310 + Math.random() * 80
+                });
+            }
+        }
+
+        function toggleSimulation() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('playPauseBtn');
+            const icon = document.getElementById('playPauseIcon');
+            const text = document.getElementById('playPauseText');
+
+            if (isRunning) {
+                btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                btn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+                icon.className = "fa-solid fa-pause";
+                text.innerText = "시뮬레이션 일시 중지";
+                runSimulation(); 
+            } else {
+                btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                icon.className = "fa-solid fa-play";
+                text.innerText = "시뮬레이션 다시 시작";
+            }
+        }
+
+        function applyConfiguration() {
+            virtualWidth = parseInt(document.getElementById('resWidthInput').value) || 1920;
+            virtualHeight = parseInt(document.getElementById('resHeightInput').value) || 1080;
+            referencePx = parseInt(document.getElementById('droneRefPxInput').value) || 50;
+            criticalDistance = parseFloat(document.getElementById('criticalDistanceInput').value) || 226.0;
+
+            document.getElementById('resolutionTag').innerText = `${virtualWidth} × ${virtualHeight}`;
+            document.getElementById('criticalDistanceText').innerText = `${criticalDistance.toFixed(1)} m 진입시 적색`;
+            
+            // [요청사항 반영] 500m 위치 영점 기준 비례상수 갱신
+            K_const = referencePx * 500;
+            document.getElementById('constKText').innerText = K_const.toLocaleString();
+
+            canvas.width = virtualWidth;
+            canvas.height = virtualHeight;
+
+            generateTargets();
+            if(!isRunning) renderFrame();
+        }
+
+        function drawTightDrone(cx, cy, w, h, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            const lineW = Math.max(1.5, h * 0.05);
+            ctx.lineWidth = lineW;
+
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, cy - h/2); ctx.lineTo(cx + w/2, cy + h/2);
+            ctx.moveTo(cx + w/2, cy - h/2); ctx.lineTo(cx - w/2, cy + h/2);
+            ctx.stroke();
+
+            const rotorR = Math.max(2, h * 0.14);
+            const corners = [{x: cx - w/2, y: cy - h/2}, {x: cx + w/2, y: cy - h/2}, {x: cx - w/2, y: cy + h/2}, {x: cx + w/2, y: cy + h/2}];
+            corners.forEach(corner => {
+                ctx.beginPath(); ctx.arc(corner.x, corner.y, rotorR, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.arc(corner.x, corner.y, rotorR * 0.3, 0, 2*Math.PI); ctx.fill();
+            });
+
+            ctx.beginPath(); ctx.arc(cx, cy, Math.max(3, h * 0.18), 0, 2*Math.PI); ctx.fill();
+            ctx.restore();
+        }
+
+        function drawTightBird(cx, cy, w, h, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = Math.max(1.5, h * 0.06);
+
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, Math.max(1, w * 0.08), Math.max(2, h * 0.32), 0, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, cy - h/6);
+            ctx.quadraticCurveTo(cx - w/4, cy - h/2, cx, cy - h/12);
+            ctx.quadraticCurveTo(cx + w/4, cy - h/2, cx + w/2, cy - h/6);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function interpolateRange(minVal, maxVal, seed) {
+            let ratio = (Math.sin(timeTick * 0.6 + seed) + 1) / 2;
+            return minVal + (maxVal - minVal) * ratio;
+        }
+
+        function renderFrame() {
+            offsetX = parseFloat(document.getElementById('crosshairXInput').value) || 0;
+            offsetY = parseFloat(document.getElementById('crosshairYInput').value) || 0;
+
+            const cLatMin = parseFloat(document.getElementById('camLatMin').value) || 37.5660;
+            const cLatMax = parseFloat(document.getElementById('camLatMax').value) || 37.5670;
+            const cLonMin = parseFloat(document.getElementById('camLonMin').value) || 126.7995;
+            const cLonMax = parseFloat(document.getElementById('camLonMax').value) || 126.8005;
+            const cAltMin = parseFloat(document.getElementById('camAltMin').value) || 340.0;
+            const cAltMax = parseFloat(document.getElementById('camAltMax').value) || 360.0;
+
+            const dLatMin = parseFloat(document.getElementById('droneLatMin').value) || 37.5700;
+            const dLatMax = parseFloat(document.getElementById('droneLatMax').value) || 37.5715;
+            const dLonMin = parseFloat(document.getElementById('droneLonMin').value) || 126.7990;
+            const dLonMax = parseFloat(document.getElementById('droneLonMax').value) || 126.8015;
+            const dAltMin = parseFloat(document.getElementById('droneAltMin').value) || 330.0;
+            const dAltMax = parseFloat(document.getElementById('droneAltMax').value) || 370.0;
+
+            cameraGPS.lat = interpolateRange(cLatMin, cLatMax, 0.0);
+            cameraGPS.lon = interpolateRange(cLonMin, cLonMax, 1.5);
+            cameraGPS.alt = interpolateRange(cAltMin, cAltMax, 3.0);
+
+            droneB.lat = interpolateRange(dLatMin, dLatMax, 4.5);
+            droneB.lon = interpolateRange(dLonMin, dLonMax, 6.0);
+            droneB.alt = interpolateRange(dAltMin, dAltMax, 7.5);
+
+            droneB.dist = calculateDistance(cameraGPS, droneB);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let crosshairX = canvas.width / 2 + offsetX;
+            let crosshairY = canvas.height / 2 + offsetY;
+
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+            ctx.lineWidth = Math.max(1.2, virtualWidth / 900);
+            ctx.beginPath(); ctx.moveTo(crosshairX, 0); ctx.lineTo(crosshairX, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, crosshairY); ctx.lineTo(canvas.width, crosshairY); ctx.stroke();
+            ctx.beginPath(); ctx.arc(crosshairX, crosshairY, virtualWidth * 0.03, 0, 2 * Math.PI); ctx.stroke();
+
+            let telemetryHtml = `
+                <div class="telemetry-card border-l-4 border-blue-600">
+                    <div class="card-title text-blue-500 font-bold">🚁 HELI_CAMERA_A <span class="badge bg-blue-500">범위내 가변 비행</span></div>
+                    <div class="text-[11px] text-slate-400 mt-1">
+                        위도 : ${cameraGPS.lat.toFixed(6)}°N | 경도 : ${cameraGPS.lon.toFixed(6)}°E <br>
+                        고도 : ${cameraGPS.alt.toFixed(1)} m | 조준 오프셋 X/Y: ${offsetX}/${offsetY}
+                    </div>
+                </div>
+                <div class="telemetry-card border-l-4 border-emerald-500">
+                    <div class="card-title text-emerald-500 font-bold">🛩️ SURVEILLANCE_DRONE_B <span class="badge bg-emerald-500">500m 고정 기조</span></div>
+                    <div class="text-[11px] text-slate-400 mt-1">
+                        위도 : ${droneB.lat.toFixed(6)}°N | 경도 : ${droneB.lon.toFixed(6)}°E <br>
+                        고도 : ${droneB.alt.toFixed(1)} m | 직선거리 : <b class="text-emerald-400">${droneB.dist.toFixed(1)} m</b><br>
+                        실시간 계산 크기 : <b class="text-emerald-400">${(K_const / droneB.dist).toFixed(1)} px</b>
+                    </div>
+                </div>
+            `;
+
+            let dLatMeters = (droneB.lat - cameraGPS.lat) * R_earth * (Math.PI / 180);
+            let dLonMeters = (droneB.lon - cameraGPS.lon) * R_earth * Math.cos(cameraGPS.lat * Math.PI / 180) * (Math.PI / 180);
+
+            let screenXB = canvas.width / 2 + (dLonMeters * (virtualWidth / 180));
+            let screenYB = canvas.height / 2 - ((droneB.alt - cameraGPS.alt) * (virtualHeight / 120));
+            
+            let calculatedDroneHeight = Math.max(5, K_const / droneB.dist);
+            let calculatedDroneWidth = calculatedDroneHeight * 1.1;
+
+            drawTightDrone(screenXB, screenYB, calculatedDroneWidth, calculatedDroneHeight, '#10b981');
+
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = Math.max(1.2, virtualWidth / 1200);
+            ctx.strokeRect(screenXB - calculatedDroneWidth/2, screenYB - calculatedDroneHeight/2, calculatedDroneWidth, calculatedDroneHeight);
+            
+            ctx.fillStyle = '#10b981';
+            ctx.font = `bold ${Math.max(10, virtualWidth/140)}px monospace`;
+            ctx.fillText(`DRONE_B | ${droneB.dist.toFixed(1)}m | ${(K_const / droneB.dist).toFixed(0)}px`, screenXB - calculatedDroneWidth/2, screenYB - calculatedDroneHeight/2 - (virtualWidth*0.005));
+
+            targets.forEach((target) => {
+                let targetX = target.baseX + Math.sin(timeTick * 0.8 + target.seedX) * 75;
+                let targetY = target.baseY + Math.sin(timeTick * 0.5 + target.seedY) * 110;
+                let targetZ = target.baseZ + Math.cos(timeTick * 0.9 + target.seedZ) * 40;
+
+                let distToHeli = Math.sqrt(targetX**2 + targetY**2 + (targetZ - cameraGPS.alt)**2);
+                let calcHeightPx = K_const / distToHeli;
+                let calcWidthPx = calcHeightPx * 1.4;
+
+                let screenX = canvas.width / 2 + (targetX * (virtualWidth / 180));
+                let screenY = canvas.height / 2 - ((targetZ - cameraGPS.alt) * (virtualHeight / 120));
+
+                let boxColor = '#fbbf24';
+                let isCritical = false;
+                
+                // [요청사항 반영] 임계 거리가 226m 이하일 때 빨간색 경보로 가동 처리
+                if (distToHeli <= criticalDistance) { 
+                    boxColor = '#ef4444'; 
+                    isCritical = true; 
+                }
+
+                drawTightBird(screenX, screenY, calcWidthPx, calcHeightPx, boxColor);
+
+                ctx.strokeStyle = boxColor;
+                ctx.lineWidth = Math.max(1.2, virtualWidth / 1200);
+                ctx.strokeRect(screenX - calcWidthPx/2, screenY - calcHeightPx/2, calcWidthPx, calcHeightPx);
+
+                ctx.fillStyle = boxColor;
+                ctx.font = `bold ${Math.max(9, virtualWidth/150)}px monospace`;
+                ctx.fillText(`${target.id} | ${distToHeli.toFixed(1)}m`, screenX - calcWidthPx/2, screenY - calcHeightPx/2 - (virtualWidth*0.005));
+
+                let birdLat = cameraGPS.lat + metersToDLat(targetY);
+                let birdLon = cameraGPS.lon + metersToDLon(targetX, cameraGPS.lat);
+
+                telemetryHtml += `
+                    <div class="telemetry-card border-l-4 ${isCritical ? 'border-red-600 bg-red-500/5 animate-pulse' : 'border-amber-500'}">
+                        <div class="card-title ${isCritical ? 'text-red-500' : 'text-amber-500'} font-bold">🦅 ${target.id}</div>
+                        <div class="text-[11px] text-slate-400 mt-1">
+                            위도 : ${birdLat.toFixed(6)}°N | 경도 : ${birdLon.toFixed(6)}°E <br>
+                            실시간 계산 픽셀 : <b>${calcHeightPx.toFixed(1)} px</b> | 거리 : <b>${distToHeli.toFixed(1)} m</b>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('telemetryLogContainer').innerHTML = telemetryHtml;
+        }
+
+        function runSimulation() {
+            if (!isRunning) return;
+            timeTick += 0.005;
+            renderFrame();
+            requestAnimationFrame(runSimulation);
+        }
+
+        applyConfiguration();
+        runSimulation();
+    </script>
+</body>
+</html>
