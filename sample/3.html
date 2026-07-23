@@ -1,1 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3단계 스토킹 위험도 예측 및 지역별 모니터링 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN for Regional Correlation Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar for modern sleek UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090b0e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #212440;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #991b1b;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[#070913] text-slate-100 font-sans antialiased selection:bg-rose-900 selection:text-white">
 
+    <!-- Header Bar -->
+    <header class="border-b border-red-950/40 bg-[#0c0e1e] px-6 py-4 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-gradient-to-tr from-red-950 to-rose-600 rounded-xl text-white shadow-lg shadow-rose-950/50 border border-rose-500/20">
+                <i data-lucide="shield" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-lg md:text-xl font-bold tracking-tight text-white">Stalking AI Research Platform</h1>
+                    <span class="text-[10px] bg-red-950 text-rose-400 font-extrabold px-2 py-0.5 rounded border border-rose-800/40 font-mono">3-PHASE MODEL</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">112 신고 데이터 합성 ➡️ 수사서사 확장 ➡️ K-SAS 사람 평가 ➡️ 지역별 상관분석 대시보드</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex bg-[#12152b] p-1.5 rounded-xl border border-red-950/30 w-full lg:w-auto overflow-x-auto gap-1">
+            <button id="tab-btn-architecture" onclick="setActiveTab('architecture')" className="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 bg-[#991b1b] text-white shadow-md">
+                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                프로젝트 구성도
+            </button>
+            <button id="tab-btn-phase1" onclick="setActiveTab('phase1')" className="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 text-slate-400 hover:text-white">
+                <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                1단계: 데이터 합성/모델
+            </button>
+            <button id="tab-btn-pipeline" onclick="setActiveTab('pipeline')" className="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 text-slate-400 hover:text-white">
+                <i data-lucide="cpu" class="w-3.5 h-3.5 text-yellow-400"></i>
+                2·3단계: 파이프라인/수사관 평가
+            </button>
+            <button id="tab-btn-dashboard" onclick="setActiveTab('dashboard')" className="tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 text-slate-400 hover:text-white">
+                <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+                지역 모니터링/상관분석
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="p-4 md:p-8 max-w-7xl mx-auto">
+
+        <!-- TAB 1: Architecture -->
+        <section id="view-architecture" class="flex flex-col gap-6">
+            <div class="bg-[#0f1124] border border-red-950/40 rounded-2xl p-6">
+                <span class="text-xs font-mono font-bold text-rose-400 bg-rose-950/50 px-2.5 py-1 rounded border border-rose-900/40">
+                    PROJECT ARCHITECTURE
+                </span>
+                <h2 class="text-xl font-bold text-white mt-3">
+                    스토킹 위험도 예측 및 지역별 전조 기사 상관관계 분석 3단계 프레임워크
+                </h2>
+                <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                    지도교수와 협의된 본 프로젝트는 '원천 데이터 유출 없는 데이터 합성', 'LLM 서사 확장 및 K-SAS 자동 스크리닝', '사람 수사관의 검증·저장', 그리고 '지역별 전조 기사와의 상관관계 모니터링'을 유기적으로 엮은 선진 치안 AI 시스템입니다.
+                </p>
+            </div>
+
+            <!-- 3단계 파이프라인 수평 흐름도 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Phase 1 Card -->
+                <div class="bg-[#0f1124] border border-rose-900/30 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/60 transition">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-600/10 rounded-full blur-xl group-hover:bg-rose-600/20 transition"></div>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-mono text-rose-400 font-bold bg-rose-950 px-2 py-0.5 rounded border border-rose-800/40">
+                                1단계 (PHASE 1)
+                            </span>
+                            <i data-lucide="database" class="w-5 h-5 text-rose-400"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white">치안 데이터 합성 & 파인튜닝 모델화</h3>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            실제 112 신고 및 수사/종결보고서는 개인정보 보호로 반출 불가. 공개 통계(KOSIS)와 K-SAS 계수를 결합해 CTGAN 및 Llama-3 기반 합성 수사 서사 1,000건 모델링.
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-red-950/30 text-[11px] font-mono text-slate-300">
+                        ▪ 산출물: 파인튜닝 서사 확장 AI 모델
+                    </div>
+                </div>
+
+                <!-- Phase 2 Card -->
+                <div class="bg-[#0f1124] border border-rose-900/30 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/60 transition">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-600/10 rounded-full blur-xl group-hover:bg-rose-600/20 transition"></div>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-mono text-rose-400 font-bold bg-rose-950 px-2 py-0.5 rounded border border-rose-800/40">
+                                2단계 (PHASE 2)
+                            </span>
+                            <i data-lucide="cpu" class="w-5 h-5 text-rose-400"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white">신고 서사 확장 & K-SAS 자동 채우기</h3>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            실시간으로 한두 줄의 짧은 112 신고가 입력되면 1단계 파인튜닝 모델이 수 문단의 정교한 수사 서사로 자동 확장. 서사 내 위험 키워드를 파싱해 K-SAS 항목을 자동 입력.
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-red-950/30 text-[11px] font-mono text-slate-300">
+                        ▪ 산출물: K-SAS 자동 채움 드래프트 보고서
+                    </div>
+                </div>
+
+                <!-- Phase 3 Card -->
+                <div class="bg-[#0f1124] border border-rose-900/30 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group hover:border-rose-500/60 transition">
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-rose-600/10 rounded-full blur-xl group-hover:bg-rose-600/20 transition"></div>
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-mono text-rose-400 font-bold bg-rose-950 px-2 py-0.5 rounded border border-rose-800/40">
+                                3단계 (PHASE 3)
+                            </span>
+                            <i data-lucide="user-check" class="w-5 h-5 text-rose-400"></i>
+                        </div>
+                        <h3 class="text-base font-bold text-white">사람 수사관 위험 평가 & DB 저장</h3>
+                        <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                            2단계 자동 입력안을 인간 수사관이 검토·보정하고 현장 소음/음주 정황을 반영해 최종 평가 확정. 저장된 데이터는 관할 지역 및 시각 데이터와 결합하여 모니터링 DB 구축.
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-red-950/30 text-[11px] font-mono text-slate-300">
+                        ▪ 산출물: 저장된 평가 데이터 & 지령 코드
+                    </div>
+                </div>
+            </div>
+
+            <!-- 대시보드 모니터링 연계 흐름 박스 -->
+            <div class="bg-[#12152b] border border-rose-500/30 rounded-2xl p-6 flex flex-col gap-4">
+                <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                    <i data-lucide="globe" class="w-4 h-4"></i>
+                    모니터링 대시보드 연계: 대한민국 17개 지역별 전조 기사 수 vs 3단계 위험 평가 상관관계
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    시스템은 3단계에서 저장되는 수사관의 실시간 위험 평가 데이터와, 언론에서 연간 발표되는 **지역별 스토킹 전조 키워드(도어락, 배회, 연락폭탄 등) 뉴스 기사 발생 빈도**를 동시 추적합니다. 이를 통해 **"특정 지역의 스토킹 전조 기사 증가가 실제 수사관이 평가한 고위험 사건 발생 수와 강력한 비례 관계(상관관계)를 갖는지"**를 모니터링하고 지역별 사전 예방 치안 정책을 수립합니다.
+                </p>
+            </div>
+        </section>
+
+        <!-- TAB 2: Phase 1 -->
+        <section id="view-phase1" class="hidden flex flex-col gap-6">
+            <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="text-xs font-mono font-bold text-rose-400">PHASE 1: SYNTHETIC DATA & LLM MODELING</span>
+                    <h2 class="text-lg font-bold text-white mt-1">1단계: 112 신고·수사보고서 합성 및 파인튜닝 모델 학습</h2>
+                    <p class="text-xs text-slate-400 mt-1">개인정보를 배제하고 KOSIS 통계 및 K-SAS 계수를 결합하여 초정밀 치안 서사 생성 모델 구축</p>
+                </div>
+                <button
+                    id="btn-train-model"
+                    onclick="handleTrainModel()"
+                    class="px-4 py-2 bg-gradient-to-r from-red-800 to-rose-600 hover:from-rose-600 hover:to-red-800 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2 whitespace-nowrap"
+                >
+                    <i data-lucide="refresh-cw" id="icon-train-spin" class="w-3.5 h-3.5"></i>
+                    <span id="txt-train-btn">LLM 파인튜닝 재학습 시뮬레이션</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 학습 파라미터 및 지표 -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <h3 class="text-xs font-bold text-white uppercase font-mono tracking-wider">Model Training Metrics</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">학습용 합성 수사문서 데이터</span>
+                                <span id="synthetic-count-val" class="text-rose-400 font-mono font-bold">1000 건</span>
+                            </div>
+                            <input
+                                type="range" id="synthetic-count-range" min="500" max="5000" step="500" value="1000"
+                                oninput="handleSyntheticCountChange(this.value)"
+                                class="w-full accent-rose-500 cursor-pointer"
+                            />
+                        </div>
+
+                        <div class="bg-[#090b0e] p-3 rounded-xl border border-red-950/20 text-xs space-y-2 font-mono">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">베이스 모델:</span>
+                                <span class="text-white">Llama-3-Ko-8B-Instruct</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">파인튜닝 기법:</span>
+                                <span class="text-white">LoRA (r=16, alpha=32)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">K-SAS 지표 정합성(AUC):</span>
+                                <span class="text-emerald-400">0.842 (공식논문 0.653 대비 우수)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">문장 확장 충실도 (ROUGE-L):</span>
+                                <span class="text-emerald-400">0.789</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 합성 데이터 샘플 서사 프리뷰 -->
+                <div class="lg:col-span-2 bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4 text-rose-400"></i>
+                        1단계 모델이 파인튜닝 학습한 가상 수사 서사 샘플 (개인정보 0%)
+                    </h3>
+                    <div class="bg-[#060810] p-4 rounded-xl border border-red-950/20 font-mono text-xs text-slate-300 leading-relaxed space-y-3">
+                        <div class="border-b border-red-950/30 pb-2 text-rose-400 font-bold">
+                            [학습 샘플 #489 - 112 신고 + 초기 수사 + 종결 검토 결합 서사]
+                        </div>
+                        <p>
+                            <strong>112 접수 서사:</strong> "신고인(20대)은 이별을 통보한 직후 피의자(전 남친)가 주거지 도어락 비밀번호를 10여 회 강제 시도하며 '열지 않으면 건물 전체에 불을 지르겠다'고 소리치는 정황을 접수함."
+                        </p>
+                        <p>
+                            <strong>수사 초기보고:</strong> "현장 임장 결과 피의자는 1차 경찰 경고조치를 수령했음에도 2시간 만에 재방문함. 디지털 포렌식 결과 가상 번호 프로그램을 사용해 180여 회의 부재중 전화를 유발하였으며, 피해자 재정적 취약성(생활비 의존 관계)을 악용하여 협박한 사실 입증됨."
+                        </p>
+                        <p>
+                            <strong>종결 검토:</strong> "K-SAS V요인 총점 11점(고위험) 산출. 피의자의 처벌 불감 및 자살 암시 경향성 확인되어 구속 기소 송치 의견 결정."
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Pipeline (Phase 2 & 3) -->
+        <section id="view-pipeline" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Input & Expansion Panel (7/12) -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Preset Selector -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-5">
+                    <span class="text-[11px] font-bold text-slate-400 block mb-2">실시간 112 접수 예시 프리셋 (원클릭 매핑)</span>
+                    <div id="presets-container" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Phase 2: Short Input & Expansion Box -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-[#212440] pb-3">
+                        <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                            <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                            2단계: 짧은 112 신고 입력 ➡️ 1단계 모델 기반 수 문단 확장
+                        </h3>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-400">신고 지역:</span>
+                            <select
+                                id="region-select"
+                                onchange="handleRegionChange(this.value)"
+                                class="bg-[#12152b] text-xs text-rose-400 font-bold px-2 py-1 rounded border border-rose-900/40 focus:outline-none cursor-pointer"
+                            >
+                                <!-- Options rendered by JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-400 block mb-1.5">
+                            112 접수 녹취/메시지 원문 (한두 줄 입력)
+                        </label>
+                        <textarea
+                            id="short-input-text"
+                            oninput="handleShortTextChange(this.value)"
+                            class="w-full h-20 bg-[#090b0e] border border-[#212440] focus:border-rose-500 rounded-xl p-3 text-xs text-slate-200 focus:outline-none transition resize-none leading-relaxed"
+                            placeholder="예: 전 남친이 집 밖에서 서성이고 도어락을 계속 두드려요..."
+                        ></textarea>
+                    </div>
+
+                    <button
+                        id="btn-run-phase2"
+                        onclick="handleRunPhase2Expansion()"
+                        class="w-full py-2.5 bg-rose-900 hover:bg-rose-800 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 border border-rose-700/50 shadow"
+                    >
+                        <i data-lucide="cpu" id="icon-expand" class="w-3.5 h-3.5"></i>
+                        <span id="txt-expand-btn">2단계: AI 수사 서사 확장 및 K-SAS 체크리스트 자동 입력 실행</span>
+                    </button>
+
+                    <!-- Expanded Narrative Output -->
+                    <div class="bg-[#090b0e] p-4 rounded-xl border border-red-950/20">
+                        <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+                            AI 모델 확장 수사서사 (Expanded Narrative)
+                        </span>
+                        <p id="expanded-narrative-text" class="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
+                            <!-- Rendered by JS -->
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Phase 3: Human Officer K-SAS Checklist Review & Override -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-[#212440] pb-2">
+                        <h3 class="text-xs font-bold text-white flex items-center gap-2">
+                            <i data-lucide="user-check" class="text-emerald-400 w-4 h-4"></i>
+                            3단계: 사람이 작성·검증하는 K-SAS 체크리스트 (Human Evaluation)
+                        </h3>
+                        <span id="v-total-display" class="text-xs text-rose-400 font-bold font-mono">V요인: 0점 / 14점</span>
+                    </div>
+
+                    <span class="text-[10px] text-slate-400">
+                        ※ 2단계 AI가 자동 체크한 항목입니다. 수사관이 현장 진술을 확인 후 항목을 최종 보정하십시오.
+                    </span>
+
+                    <div id="ksas-v-container" class="flex flex-col gap-3">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- C and P Factors checkboxes -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                        <div class="bg-[#090b0e] p-3 rounded-xl border border-red-950/20">
+                            <span class="text-[11px] font-bold text-white block mb-2">범죄 구성 요인 (C-Factor)</span>
+                            <div id="ksas-c-container" class="space-y-1">
+                                <!-- Rendered by JS -->
+                            </div>
+                        </div>
+
+                        <div class="bg-[#090b0e] p-3 rounded-xl border border-red-950/20">
+                            <span class="text-[11px] font-bold text-white block mb-2">가해자 위험 특성 (P-Factor)</span>
+                            <div id="ksas-p-container" class="space-y-1">
+                                <!-- Rendered by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Officer Note & Save Button -->
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-400 block mb-1">수사관 종합 의견 및 대응 소견</label>
+                        <input
+                            type="text"
+                            id="officer-notes"
+                            oninput="handleNotesChange(this.value)"
+                            class="w-full bg-[#090b0e] border border-[#212440] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                        />
+                    </div>
+
+                    <button
+                        onclick="handleSaveAssessment()"
+                        class="w-full py-3 bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2"
+                    >
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        3단계: 최종 위험 평가 확정 및 데이터베이스 저장 (Save to DB)
+                    </button>
+
+                    <div id="save-toast" class="hidden bg-emerald-950 border border-emerald-500/50 text-emerald-400 p-3 rounded-xl text-xs flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        성공적으로 3단계 수사관 평가 데이터가 저장되었습니다! (대시보드 모니터링 연동 완료)
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Output Panel (5/12) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Risk Gauge -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col items-center text-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">최종 연산 위험도 지수</span>
+                    
+                    <div class="relative flex items-center justify-center w-36 h-36">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="72" cy="72" r="60" class="stroke-[#12152b]" stroke-width="10" fill="transparent" />
+                            <circle
+                                id="gauge-circle"
+                                cx="72" cy="72" r="60"
+                                class="transition-all duration-500 stroke-red-500"
+                                stroke-width="10" fill="transparent"
+                                stroke-dasharray="376.99"
+                                stroke-dashoffset="0"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                        <div class="absolute flex flex-col items-center">
+                            <span id="risk-score-text" class="text-3xl font-extrabold text-white font-mono">0.0%</span>
+                            <span class="text-[9px] text-rose-400 mt-0.5">3단계 검증치</span>
+                        </div>
+                    </div>
+
+                    <div id="risk-tier-card" class="mt-4 p-3 rounded-xl border w-full bg-red-950/60 border-red-500">
+                        <span id="risk-tier-name" class="text-sm font-extrabold text-red-500 block">극위험 (살인/상해 임박)</span>
+                        <span id="risk-tier-code" class="text-xs font-bold font-mono text-white mt-0.5 block">Code 0 (최우선출동)</span>
+                    </div>
+                </div>
+
+                <!-- Saved Feed -->
+                <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <h3 class="text-xs font-bold text-white flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="database" class="w-4 h-4 text-rose-400"></i>
+                            3단계 저장된 평가 피드 (DB Feed)
+                        </span>
+                        <span id="saved-feed-count" class="text-rose-400 font-mono">3건</span>
+                    </h3>
+
+                    <div id="saved-feed-list" class="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 4: Dashboard -->
+        <section id="view-dashboard" class="hidden flex flex-col gap-6">
+            <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span class="text-xs font-mono font-bold text-rose-400">REGIONAL MONITORING & CORRELATION DASHBOARD</span>
+                    <h2 class="text-lg font-bold text-white mt-1">
+                        전국 지역별 스토킹 전조 기사 모니터링 & 3단계 위험 평가 상관관계
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">
+                        지난 1년간 지역별 스토킹 전조 증상 키워드(배회, 도어락, 부계정, 집착 등) 언론 기사 발표 횟수와 3단계 수사관 평가 고위험 사건의 상관분석
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Left: Map & Region Details (5/12) -->
+                <div class="lg:col-span-5 bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                    <h3 class="text-xs font-bold text-white flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-rose-400"></i>
+                            대한민국 17개 시·도 전조 기사 모니터링 지도
+                        </span>
+                        <span class="text-[10px] text-slate-400">지역 클릭 시 세부 통계</span>
+                    </h3>
+
+                    <!-- South Korea Grid Map Simulation -->
+                    <div class="bg-[#060810] p-4 rounded-xl border border-red-950/20 relative min-h-[320px] flex items-center justify-center">
+                        <div id="region-grid-map" class="grid grid-cols-4 gap-2 w-full max-w-sm">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Selected Region Detailed Card -->
+                    <div id="selected-region-card" class="bg-[#12152b] p-4 rounded-xl border border-rose-500/30 flex flex-col gap-2">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Right: Correlation Charts (7/12) -->
+                <div class="lg:col-span-7 flex flex-col gap-6">
+                    
+                    <!-- Composed Chart: News Articles vs Saved High-Risk Cases -->
+                    <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <i data-lucide="bar-chart-2" class="w-4 h-4 text-rose-400"></i>
+                                지역별 전조 기사 발표 횟수 vs 3단계 고위험 평가 건수 (통합 비교)
+                            </h3>
+                            <span class="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800/30 font-mono">
+                                상관계수 r = +0.892 (강한 양의 상관관계)
+                            </span>
+                        </div>
+
+                        <div class="h-64 w-full relative">
+                            <canvas id="chart-composed"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Scatter Correlation Plot -->
+                    <div class="bg-[#0f1124] border border-red-950/30 rounded-2xl p-6 flex flex-col gap-4">
+                        <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <i data-lucide="trending-up" class="w-4 h-4 text-rose-400"></i>
+                            지역별 산점도(Scatter Plot) 및 상관관계 분석
+                        </h3>
+                        <p class="text-[11px] text-slate-400">
+                            스토킹 전조 증상(도어락, 배회 등)에 관한 뉴스 기사 발표 빈도가 높은 지역일수록, 수사관에 의해 평가된 실제 고위험 사건 수(Phase 3)가 정비례하여 급증함을 실증적으로 입증합니다.
+                        </p>
+
+                        <div class="h-48 w-full relative">
+                            <canvas id="chart-scatter"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="border-t border-red-950/40 bg-[#0c0e1e] py-6 px-8 text-center text-xs text-slate-500 mt-12">
+        <p>© 2026 Stalking Risk Evaluation Research Group. 3-Phase Synthetic Modeling & Regional News Correlation Framework.</p>
+    </footer>
+
+    <script>
+        // Data & Constants
+        const KOREA_REGIONS = [
+            { id: 'SEOUL', name: '서울', newsCount: 1420, avgRisk: 82.4, casesSaved: 340 },
+            { id: 'GYEONGGI', name: '경기', newsCount: 1850, avgRisk: 86.1, casesSaved: 480 },
+            { id: 'INCHEON', name: '인천', newsCount: 680, avgRisk: 74.2, casesSaved: 190 },
+            { id: 'GANGWON', name: '강원', newsCount: 410, avgRisk: 52.8, casesSaved: 110 },
+            { id: 'CHUNGBUK', name: '충북', newsCount: 380, avgRisk: 48.5, casesSaved: 95 },
+            { id: 'CHUNGNAM', name: '충남', newsCount: 520, avgRisk: 61.2, casesSaved: 140 },
+            { id: 'SEJONG', name: '세종', newsCount: 190, avgRisk: 39.1, casesSaved: 45 },
+            { id: 'DAEJEON', name: '대전', newsCount: 460, avgRisk: 58.4, casesSaved: 125 },
+            { id: 'GYEONGBUK', name: '경북', newsCount: 610, avgRisk: 64.7, casesSaved: 165 },
+            { id: 'DAEGU', name: '대구', newsCount: 580, avgRisk: 67.9, casesSaved: 150 },
+            { id: 'ULSAN', name: '울산', newsCount: 320, avgRisk: 49.6, casesSaved: 85 },
+            { id: 'BUSAN', name: '부산', newsCount: 940, avgRisk: 78.3, casesSaved: 260 },
+            { id: 'GYEONGNAM', name: '경남', newsCount: 710, avgRisk: 69.1, casesSaved: 180 },
+            { id: 'JEONBUK', name: '전북', newsCount: 430, avgRisk: 51.0, casesSaved: 105 },
+            { id: 'GWANGJU', name: '광주', newsCount: 490, avgRisk: 60.5, casesSaved: 130 },
+            { id: 'JEONNAM', name: '전남', newsCount: 510, avgRisk: 56.4, casesSaved: 135 },
+            { id: 'JEJU', name: '제주', newsCount: 290, avgRisk: 45.2, casesSaved: 70 }
+        ];
+
+        const KSAS_V_ITEMS = [
+            { id: "V1", title: "신변 안전 공포", desc: "가해자의 직접적 위해 혹은 스토킹 지속에 기인하는 실질적 신변 공포" },
+            { id: "V2", title: "가족/지인 안전 우려", desc: "피해자 외 주변인(가족, 자녀, 동거인)에 대한 공격 및 위해 두려움" },
+            { id: "V3", title: "비일관적 진술/태도", desc: "양가적 관계 또는 보복 공포로 고소 및 처벌불원을 번복하는 행위" },
+            { id: "V4", title: "보호서비스 인지 결함", desc: "지적 장애, 정신 질환 등으로 사법/보호 서비스를 활용하지 못함" },
+            { id: "V5", title: "주거 환경의 불안정성", desc: "도어락 파손, 무단 침입 시도 등 주거/직장 보안 제어 결함" },
+            { id: "V6", title: "재정적 기회 결함", desc: "생활비를 가해자에게 의존하거나 재정적 자립도가 최악인 무자력 상태" },
+            { id: "V7", title: "보호조치 사법적 무시", desc: "접근금지, 서면경고 등 잠정조치가 효력이 없고 가해자가 이를 위반함" }
+        ];
+
+        const KSAS_C_ITEMS = [
+            { id: 'C1', title: '배회 및 반복 연락', desc: '주거지 배회, 수백 회의 메시지 및 전화 발신' },
+            { id: 'C2', title: '물리적 손괴/침입 시도', desc: '배관 침입, 도어락 비밀번호 강제 해제 시도' },
+            { id: 'C3', title: '흉기 소지 및 직접 위협', desc: '흉기 소지 매복, "같이 죽자" 등 직접적 가해 피력' },
+            { id: 'C4', title: '디지털 계정 우회 추적', desc: '가상 번호, 타인 명의 부계정을 통한 차단 무력화' }
+        ];
+
+        const KSAS_P_ITEMS = [
+            { id: 'P1', title: '동종 강력 전과 이력', desc: '폭행, 상해, 과거 타인에 대한 스토킹 유죄 이력' },
+            { id: 'P2', title: '조현/망상 및 심리 이상', desc: '망상장애, 치료 거부, 현실 왜곡 등 중증 정황' },
+            { id: 'P3', title: '처벌 공포 상실 (자살 암시)', desc: '"감방 가도 상관없다" 등 사회 규범 마비 상태' },
+            { id: 'P4', title: '중독성 물질 남용 상태', desc: '음주 시 인지 왜곡 극대화 및 약물 의존성 정황' }
+        ];
+
+        const SHORT_DISPATCH_EXAMPLES = [
+            {
+                title: "사례 1: 주거지 배회 및 경고 위반",
+                region: "SEOUL",
+                shortText: "경찰관님, 남친이 집 밖에서 며칠째 서성이고 있어요. 앞전에도 경고받고 갔는데 또 와서 시간대를 짧게 자주 서성여요.",
+                expandedNarrative: "[112 긴급 접수 및 모델 확장 수사서사]\n피해자(20대, 여성)는 피의자(전 남친)의 지속적인 주거지 주변 배회 및 출입문 무단 대기 행위로 심각한 공포를 호소함. 피의자는 관할 파출소의 1차 서면경고 및 대면 경고 처분을 인지하고도, 행위를 멈추지 않고 방문 주기를 수일 단위에서 수시간 단위로 압축함. 피해자의 도어락 번호를 강제로 누르는 소리가 청취되며, 차단된 전화번호 대신 타인 명의 부계정을 이용해 '문 안 열면 죽어버리겠다'는 위협 메시지를 지속 발송하는 상태임.",
+                v: { V1: 2, V2: 1, V3: 0, V4: 0, V5: 2, V6: 1, V7: 2 },
+                c: { C1: true, C2: true, C3: false, C4: true },
+                p: { P1: false, P2: false, P3: true, P4: false }
+            },
+            {
+                title: "사례 2: 재정 무자력 및 고소 취하 반복",
+                region: "GYEONGGI",
+                shortText: "전 남친이 카드값 갚아줄 테니 만나자며 회사 앞까지 찾아와서 난리 쳐요. 고소했다가 빌길래 취하서 썼는데 또 그래요.",
+                expandedNarrative: "[112 긴급 접수 및 모델 확장 수사서사]\n피해자는 피의자와 과거 약 2년간 동거하며 채무 및 생활비를 의존해 온 재정적 무자력 관계임. 피해자가 이별을 통보하자 피의자는 '동거 당시 사용한 자금 1,500만 원을 당장 반환하지 않으면 회사 직장 동료들에게 관계를 소문내겠다'며 협박함. 피해자는 보복에 대한 극심한 공포와 재정적 의존성으로 인해 경찰 고소와 처벌불원서 제출을 3회 이상 번복한 이력이 확인됨.",
+                v: { V1: 1, V2: 0, V3: 2, V4: 0, V5: 1, V6: 2, V7: 1 },
+                c: { C1: true, C2: false, C3: false, C4: false },
+                p: { P1: false, P2: false, P3: false, P4: true }
+            },
+            {
+                title: "사례 3: 흉기 소지 및 보복 기습 임박",
+                region: "BUSAN",
+                shortText: "헤어진 남친이 칼 들고 아파트 엘리베이터 앞에서 기다리고 있대요. 엄마한테 가만 안 둔다고 문자 왔어요.",
+                expandedNarrative: "[112 긴급 접수 및 모델 확장 수사서사]\n피해자의 모친으로부터 긴급 신고 접수됨. 피의자는 법원의 접근금지 잠정조치 명령 발령 하에서도 렌터카를 대여해 피해자 주거지 아파트 지하주차장 및 엘리베이터 주변을 사전 매복함. 피해자의 모친 휴대폰으로 '당신 딸이 내 인생 망쳤으니 일가족 다 끝내겠다'는 메시지를 전송함. 포렌식 결과 범행 전 '흉기 구매', '살인 처벌 양형'을 검색한 이력이 확인되어 즉각 구속 기소 조치가 요구됨.",
+                v: { V1: 2, V2: 2, V3: 0, V4: 0, V5: 2, V6: 0, V7: 2 },
+                c: { C1: true, C2: true, C3: true, C4: true },
+                p: { P1: true, P2: true, P3: true, P4: false }
+            }
+        ];
+
+        // Global State
+        let state = {
+            activeTab: 'architecture',
+            syntheticCount: 1000,
+            isTraining: false,
+            selectedRegion: 'SEOUL',
+            shortInputText: SHORT_DISPATCH_EXAMPLES[0].shortText,
+            isExpanding: false,
+            expandedNarrative: SHORT_DISPATCH_EXAMPLES[0].expandedNarrative,
+            vScores: { ...SHORT_DISPATCH_EXAMPLES[0].v },
+            cScores: { ...SHORT_DISPATCH_EXAMPLES[0].c },
+            pScores: { ...SHORT_DISPATCH_EXAMPLES[0].p },
+            officerNotes: "가해자 즉시 불심검문 및 긴급응급조치 100m 접근금지 서식 발급 요망.",
+            savedAssessments: [
+                { id: 'STK-2026-001', region: 'SEOUL', date: '2026-07-22 14:20', shortText: '집 밖에서 며칠째 서성임', riskIndex: 88.5, tier: '극위험', officer: '김수사관' },
+                { id: 'STK-2026-002', region: 'GYEONGGI', date: '2026-07-22 15:05', shortText: '카드값 반환 요구 및 직장 찾아옴', riskIndex: 62.0, tier: '위험', officer: '박형사' },
+                { id: 'STK-2026-003', region: 'BUSAN', date: '2026-07-22 16:40', shortText: '흉기 소지 아파트 엘리베이터 대기', riskIndex: 96.2, tier: '극위험', officer: '이경위' }
+            ]
+        };
+
+        // Chart instances
+        let composedChartInstance = null;
+        let scatterChartInstance = null;
+
+        // Risk Calculation Function
+        function computeRisk() {
+            let score = 10.0;
+            const vTotal = Object.values(state.vScores).reduce((a, b) => a + b, 0);
+            score += vTotal * 4.2;
+
+            const cCount = Object.values(state.cScores).filter(Boolean).length;
+            const pCount = Object.values(state.pScores).filter(Boolean).length;
+            score += cCount * 4.5 + pCount * 5.0;
+
+            if (score > 100) score = 100;
+            if (!state.shortInputText || state.shortInputText.trim() === '') score = 0;
+
+            let tier = { name: "관찰 대상", color: "text-emerald-400", bg: "bg-emerald-950/40", border: "border-emerald-500/30", code: "Code 2", stroke: "stroke-emerald-400" };
+            if (score >= 75) {
+                tier = { name: "극위험 (살인/상해 임박)", color: "text-red-500", bg: "bg-red-950/60", border: "border-red-500", code: "Code 0 (최우선출동)", stroke: "stroke-red-500" };
+            } else if (score >= 50) {
+                tier = { name: "위험 (물리적 피해 우려)", color: "text-orange-500", bg: "bg-orange-950/40", border: "border-orange-500/40", code: "Code 1 (우선출동)", stroke: "stroke-orange-500" };
+            } else if (score >= 25) {
+                tier = { name: "주의 (행동 에스컬레이션)", color: "text-yellow-400", bg: "bg-yellow-950/30", border: "border-yellow-500/30", code: "Code 1 (우선출동)", stroke: "stroke-yellow-400" };
+            }
+
+            return {
+                index: score.toFixed(1),
+                vTotal,
+                cCount,
+                pCount,
+                tier
+            };
+        }
+
+        // Tab Switching Logic
+        function setActiveTab(tab) {
+            state.activeTab = tab;
+            ['architecture', 'phase1', 'pipeline', 'dashboard'].forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tab) {
+                    el.classList.remove('hidden');
+                    btn.className = "tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 bg-[#991b1b] text-white shadow-md";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "tab-btn px-3.5 py-2 rounded-lg text-xs font-bold transition duration-150 whitespace-nowrap flex items-center gap-1.5 text-slate-400 hover:text-white";
+                }
+            });
+
+            if (tab === 'dashboard') {
+                renderDashboard();
+            }
+        }
+
+        // Phase 1 Actions
+        function handleSyntheticCountChange(val) {
+            state.syntheticCount = val;
+            document.getElementById('synthetic-count-val').innerText = `${val} 건`;
+        }
+
+        function handleTrainModel() {
+            if (state.isTraining) return;
+            state.isTraining = true;
+            
+            const btnTxt = document.getElementById('txt-train-btn');
+            const iconSpin = document.getElementById('icon-train-spin');
+            
+            btnTxt.innerText = '모델 파인튜닝 재학습 중...';
+            iconSpin.classList.add('animate-spin');
+
+            setTimeout(() => {
+                state.isTraining = false;
+                btnTxt.innerText = 'LLM 파인튜닝 재학습 시뮬레이션';
+                iconSpin.classList.remove('animate-spin');
+            }, 2000);
+        }
+
+        // Phase 2 & 3 Pipeline Actions
+        function handleLoadPreset(idx) {
+            const preset = SHORT_DISPATCH_EXAMPLES[idx];
+            state.selectedRegion = preset.region;
+            state.shortInputText = preset.shortText;
+            state.expandedNarrative = preset.expandedNarrative;
+            state.vScores = { ...preset.v };
+            state.cScores = { ...preset.c };
+            state.pScores = { ...preset.p };
+
+            updatePipelineUI();
+        }
+
+        function handleRegionChange(val) {
+            state.selectedRegion = val;
+            if (state.activeTab === 'dashboard') {
+                renderDashboard();
+            }
+        }
+
+        function handleShortTextChange(val) {
+            state.shortInputText = val;
+            updateRiskGauge();
+        }
+
+        function handleNotesChange(val) {
+            state.officerNotes = val;
+        }
+
+        function handleRunPhase2Expansion() {
+            if (state.isExpanding) return;
+            state.isExpanding = true;
+
+            const icon = document.getElementById('icon-expand');
+            const txt = document.getElementById('txt-expand-btn');
+            icon.setAttribute('data-lucide', 'refresh-cw');
+            icon.classList.add('animate-spin');
+            txt.innerText = '1단계 파인튜닝 모델이 수사 서사 확장 중...';
+            lucide.createIcons();
+
+            setTimeout(() => {
+                state.isExpanding = false;
+                state.expandedNarrative = `[1단계 파인튜닝 모델 자동 생성 서사 수사문서]\n[신고지역: ${state.selectedRegion}]\n입력된 112 신고: "${state.shortInputText}"\n\n확장 상세 정황: 본 피의자는 지속적인 집착 및 추적 행동을 노골화하는 단계임. 피해자의 일관된 거부 의사 표현에도 불구하고 주거지 보안 취약점을 이용해 침입을 시도하였으며, 112 신고에 따른 법적 경고를 사법적으로 무시하고 재범 주기를 급격히 단축시키고 있음. 피해자의 재정적 취약성 및 심리적 공포감을 악용한 보복 위협 징후가 고도화되어 K-SAS 취약성 지표 V1, V5, V7 고득점 조건에 완전히 부합함.`;
+                
+                icon.setAttribute('data-lucide', 'cpu');
+                icon.classList.remove('animate-spin');
+                txt.innerText = '2단계: AI 수사 서사 확장 및 K-SAS 체크리스트 자동 입력 실행';
+                lucide.createIcons();
+
+                document.getElementById('expanded-narrative-text').innerText = state.expandedNarrative;
+            }, 1200);
+        }
+
+        function handleSetVScore(vId, score) {
+            state.vScores[vId] = score;
+            updatePipelineUI();
+        }
+
+        function handleSetCScore(cId, checked) {
+            state.cScores[cId] = checked;
+            updatePipelineUI();
+        }
+
+        function handleSetPScore(pId, checked) {
+            state.pScores[pId] = checked;
+            updatePipelineUI();
+        }
+
+        function handleSaveAssessment() {
+            const risk = computeRisk();
+            const newEntry = {
+                id: `STK-2026-${String(state.savedAssessments.length + 1).padStart(3, '0')}`,
+                region: state.selectedRegion,
+                date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                shortText: state.shortInputText,
+                riskIndex: parseFloat(risk.index),
+                tier: risk.tier.name,
+                officer: '현장수사관'
+            };
+            state.savedAssessments.unshift(newEntry);
+            
+            // Show toast
+            const toast = document.getElementById('save-toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+
+            renderSavedFeed();
+        }
+
+        // UI Renderers for Pipeline
+        function updatePipelineUI() {
+            // Update Inputs
+            document.getElementById('region-select').value = state.selectedRegion;
+            document.getElementById('short-input-text').value = state.shortInputText;
+            document.getElementById('expanded-narrative-text').innerText = state.expandedNarrative;
+            document.getElementById('officer-notes').value = state.officerNotes;
+
+            // Render V Items
+            const vContainer = document.getElementById('ksas-v-container');
+            vContainer.innerHTML = KSAS_V_ITEMS.map(item => `
+                <div class="border-b border-red-950/10 pb-2 last:border-0 last:pb-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[11px] font-bold text-slate-200">${item.id}. ${item.title}</span>
+                            <p class="text-[9px] text-slate-500">${item.desc}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-1.5">
+                        ${[0, 1, 2].map(s => {
+                            const labels = ['없음 (0점)', '경미 (1점)', '극심 (2점)'];
+                            const isSelected = state.vScores[item.id] === s;
+                            const cls = isSelected 
+                                ? 'bg-rose-950 text-rose-400 border-rose-500' 
+                                : 'bg-[#090b0e] text-slate-500 border-[#212440] hover:bg-[#12142d]';
+                            return `<button onclick="handleSetVScore('${item.id}', ${s})" class="py-1 text-[10px] rounded-lg font-bold border transition ${cls}">${labels[s]}</button>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // Render C Items
+            const cContainer = document.getElementById('ksas-c-container');
+            cContainer.innerHTML = KSAS_C_ITEMS.map(c => `
+                <label class="flex items-center gap-2 text-[10px] text-slate-300 py-1 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        ${state.cScores[c.id] ? 'checked' : ''}
+                        onchange="handleSetCScore('${c.id}', this.checked)"
+                        class="accent-rose-500"
+                    />
+                    <span>${c.title}</span>
+                </label>
+            `).join('');
+
+            // Render P Items
+            const pContainer = document.getElementById('ksas-p-container');
+            pContainer.innerHTML = KSAS_P_ITEMS.map(p => `
+                <label class="flex items-center gap-2 text-[10px] text-slate-300 py-1 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        ${state.pScores[p.id] ? 'checked' : ''}
+                        onchange="handleSetPScore('${p.id}', this.checked)"
+                        class="accent-rose-500"
+                    />
+                    <span>${p.title}</span>
+                </label>
+            `).join('');
+
+            updateRiskGauge();
+            renderSavedFeed();
+        }
+
+        function updateRiskGauge() {
+            const risk = computeRisk();
+            document.getElementById('v-total-display').innerText = `V요인: ${risk.vTotal}점 / 14점`;
+            document.getElementById('risk-score-text').innerText = `${risk.index}%`;
+
+            // SVG Gauge Circle Update
+            const circle = document.getElementById('gauge-circle');
+            const circumference = 2 * Math.PI * 60; // r = 60
+            const offset = circumference * (1 - parseFloat(risk.index) / 100);
+            circle.style.strokeDashoffset = offset;
+            circle.className = `transition-all duration-500 ${risk.tier.stroke}`;
+
+            // Tier Card
+            const tierCard = document.getElementById('risk-tier-card');
+            tierCard.className = `mt-4 p-3 rounded-xl border w-full ${risk.tier.bg} ${risk.tier.border}`;
+            
+            const tierName = document.getElementById('risk-tier-name');
+            tierName.className = `text-sm font-extrabold ${risk.tier.color} block`;
+            tierName.innerText = risk.tier.name;
+
+            const tierCode = document.getElementById('risk-tier-code');
+            tierCode.innerText = risk.tier.code;
+        }
+
+        function renderSavedFeed() {
+            const feedList = document.getElementById('saved-feed-list');
+            document.getElementById('saved-feed-count').innerText = `${state.savedAssessments.length}건`;
+
+            feedList.innerHTML = state.savedAssessments.map(sa => {
+                const regName = KOREA_REGIONS.find(r => r.id === sa.region)?.name || sa.region;
+                return `
+                    <div class="bg-[#090b0e] p-3 rounded-xl border border-red-950/20 text-xs flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-rose-400 font-bold">${sa.id}</span>
+                                <span class="text-[10px] bg-rose-950 text-rose-300 px-1.5 py-0.2 rounded border border-rose-900/30">
+                                    ${regName}
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-300 mt-1 line-clamp-1">${sa.shortText}</p>
+                            <span class="text-[9px] text-slate-500 mt-0.5 block">${sa.date} | 담당: ${sa.officer}</span>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-sm font-bold font-mono text-white block">${sa.riskIndex}%</span>
+                            <span class="text-[10px] text-rose-400 font-bold">${sa.tier}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render Dashboard View
+        function renderDashboard() {
+            // Render Map Grid
+            const gridMap = document.getElementById('region-grid-map');
+            gridMap.innerHTML = KOREA_REGIONS.map(reg => {
+                const isSelected = state.selectedRegion === reg.id;
+                const intensity = reg.newsCount > 1000 ? 'bg-red-950/80 border-red-500 text-rose-300' :
+                                  reg.newsCount > 500 ? 'bg-rose-950/40 border-rose-800 text-rose-200' :
+                                  'bg-[#0f1124] border-[#212440] text-slate-400';
+                const ring = isSelected ? 'ring-2 ring-rose-400 font-bold scale-105 z-10' : 'hover:border-rose-600';
+                
+                return `
+                    <button
+                        onclick="handleSelectDashboardRegion('${reg.id}')"
+                        class="p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${intensity} ${ring}"
+                    >
+                        <span class="text-xs font-bold">${reg.name}</span>
+                        <span class="text-[9px] font-mono mt-0.5">${reg.newsCount}건</span>
+                    </button>
+                `;
+            }).join('');
+
+            // Render Selected Region Detail
+            const regionData = getRegionCorrelationData();
+            const regInfo = regionData.find(r => r.regionId === state.selectedRegion) || regionData[0];
+            const detailCard = document.getElementById('selected-region-card');
+            detailCard.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold text-white">${regInfo.name} 지역 스토킹 모니터링 상세</span>
+                    <span class="text-xs font-mono text-rose-400 font-bold">CODE: ${regInfo.regionId}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mt-2 text-center font-mono">
+                    <div class="bg-[#090b0e] p-2 rounded-lg border border-red-950/20">
+                        <span class="text-[10px] text-slate-400 block">연간 전조 기사</span>
+                        <span class="text-sm font-bold text-rose-400">${regInfo.newsCount}건</span>
+                    </div>
+                    <div class="bg-[#090b0e] p-2 rounded-lg border border-red-950/20">
+                        <span class="text-[10px] text-slate-400 block">3단계 평가 고위험</span>
+                        <span class="text-sm font-bold text-emerald-400">${regInfo.savedCount}건</span>
+                    </div>
+                    <div class="bg-[#090b0e] p-2 rounded-lg border border-red-950/20">
+                        <span class="text-[10px] text-slate-400 block">평균 위험 지수</span>
+                        <span class="text-sm font-bold text-amber-400">${regInfo.avgRisk}%</span>
+                    </div>
+                </div>
+            `;
+
+            renderCharts(regionData);
+        }
+
+        function handleSelectDashboardRegion(regionId) {
+            state.selectedRegion = regionId;
+            renderDashboard();
+        }
+
+        function getRegionCorrelationData() {
+            return KOREA_REGIONS.map(reg => {
+                const savedCount = state.savedAssessments.filter(s => s.region === reg.id).length;
+                return {
+                    name: reg.name,
+                    newsCount: reg.newsCount,
+                    avgRisk: reg.avgRisk,
+                    savedCount: reg.casesSaved + savedCount,
+                    regionId: reg.id
+                };
+            });
+        }
+
+        // Render Chart.js
+        function renderCharts(data) {
+            const labels = data.map(d => d.name);
+            const newsCounts = data.map(d => d.newsCount);
+            const savedCounts = data.map(d => d.savedCount);
+
+            // Composed Chart
+            const ctxComposed = document.getElementById('chart-composed').getContext('2d');
+            if (composedChartInstance) composedChartInstance.destroy();
+            composedChartInstance = new Chart(ctxComposed, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '연간 전조 기사 수',
+                            data: newsCounts,
+                            backgroundColor: '#991b1b',
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
+                            label: '3단계 고위험 평가 건수',
+                            data: savedCounts,
+                            borderColor: '#10b981',
+                            backgroundColor: '#10b981',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: { color: '#8b949e', font: { size: 10 } },
+                            grid: { color: '#212440' }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            ticks: { color: '#ff4d4d', font: { size: 10 } },
+                            grid: { color: '#212440' },
+                            title: { display: true, text: '기사 수', color: '#ff4d4d', font: { size: 10 } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            ticks: { color: '#10b981', font: { size: 10 } },
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: '평가 건수', color: '#10b981', font: { size: 10 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#c5c6c7', font: { size: 11 } } },
+                        tooltip: { backgroundColor: '#0f1124', titleColor: '#fff', bodyColor: '#c5c6c7', borderColor: '#212440', borderWidth: 1 }
+                    }
+                }
+            });
+
+            // Scatter Chart
+            const scatterData = data.map(d => ({ x: d.newsCount, y: d.savedCount, label: d.name }));
+            const ctxScatter = document.getElementById('chart-scatter').getContext('2d');
+            if (scatterChartInstance) scatterChartInstance.destroy();
+            scatterChartInstance = new Chart(ctxScatter, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: '지역 모니터링 노드',
+                        data: scatterData,
+                        backgroundColor: '#f59e0b',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: '전조 기사 수 (건)', color: '#8b949e', font: { size: 10 } },
+                            ticks: { color: '#8b949e', font: { size: 10 } },
+                            grid: { color: '#212440' }
+                        },
+                        y: {
+                            title: { display: true, text: '고위험 사건 수 (건)', color: '#8b949e', font: { size: 10 } },
+                            ticks: { color: '#8b949e', font: { size: 10 } },
+                            grid: { color: '#212440' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#c5c6c7', font: { size: 11 } } },
+                        tooltip: {
+                            backgroundColor: '#0f1124',
+                            titleColor: '#fff',
+                            bodyColor: '#c5c6c7',
+                            borderColor: '#212440',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(ctx) {
+                                    const point = ctx.raw;
+                                    return `${point.label}: 기사 ${point.x}건, 고위험 ${point.y}건`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            // Render Preset Buttons
+            const presetContainer = document.getElementById('presets-container');
+            presetContainer.innerHTML = SHORT_DISPATCH_EXAMPLES.map((ex, idx) => `
+                <button
+                    onclick="handleLoadPreset(${idx})"
+                    class="p-3 text-left bg-[#12152b] hover:bg-[#1a1f42] border border-red-950/30 rounded-xl transition flex flex-col justify-between h-20"
+                >
+                    <span class="font-bold text-xs text-white line-clamp-1">${ex.title}</span>
+                    <span class="text-[10px] text-slate-400 line-clamp-2 mt-1">${ex.shortText}</span>
+                </button>
+            `).join('');
+
+            // Render Region Options
+            const regionSelect = document.getElementById('region-select');
+            regionSelect.innerHTML = KOREA_REGIONS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+
+            // Render Initial UI
+            updatePipelineUI();
+
+            // Initialize Lucide Icons
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
